@@ -214,6 +214,7 @@ class Doctrine_Core
     const ATTR_USE_TABLE_IDENTITY_MAP       = 182;
     const ATTR_TABLE_CACHE                  = 183;
     const ATTR_TABLE_CACHE_LIFESPAN         = 184;
+    const ATTR_TABLE_FILTER 				= 185;
 
 
     /**
