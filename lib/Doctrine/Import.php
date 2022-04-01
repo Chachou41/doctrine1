@@ -380,9 +380,32 @@ class Doctrine_Import extends Doctrine_Connection_Module
           $definitions = array();
 
           foreach ($connection->import->listTables() as $table) {
+              
+              //Initialisations liées au table_filter
+          	  $table_filter = $connection->getAttribute(Doctrine_Core::ATTR_TABLE_FILTER);
+          	  $tbf_actif = sizeof($table_filter) != 0;
+         	  foreach($table_filter as $tbf_table => $tbf_class) {
+         	  	if(is_numeric($tbf_table)) { //cas où la classe n'est pas précisée
+         	  		$tbf_table = $tbf_class;
+         	  		$tbf_class = $this->removePrefix($tbf_class);
+         	  	}
+         	  	$tbf_array[strtoupper($tbf_table)] = $tbf_class;
+          	  	$tbf_tests[] = strtoupper($tbf_table);         	  	
+          	  }
+          	  
+          	  $table_upper = strtoupper($table);          	  
+        	  if(!$tbf_actif || in_array($table_upper, $tbf_tests))
+        	  {
+        	  	  //table_filter  
+        	      if($tbf_actif) {
+	          	  	$tbf_className = $tbf_array[$table_upper];
+	          	  } else {
+	          	  	$tbf_className = $table;
+	          	  }
+                  
               $definition = array();
               $definition['tableName'] = $table;
-              $definition['className'] = Doctrine_Inflector::classify(Doctrine_Inflector::tableize($table));
+              $definition['className'] = Doctrine_Inflector::classify(Doctrine_Inflector::tableize($tbf_className));
               $definition['columns'] = $connection->import->listTableColumns($table);
               $definition['connection'] = $connection->getName();
               $definition['connectionClassName'] = $definition['className'];
@@ -393,7 +416,16 @@ class Doctrine_Import extends Doctrine_Connection_Module
                   $relClasses = array();
                   foreach ($relations as $relation) {
                       $table = $relation['table'];
-                      $class = Doctrine_Inflector::classify(Doctrine_Inflector::tableize($table));
+	                      $table_upper = strtoupper($table);	                      
+	                      if(!$tbf_actif || in_array($table_upper, $tbf_tests)) {
+	                      	  //table_filter
+	                      	  if($tbf_actif) {
+				          	  	$tbf_className = $tbf_array[$table_upper];
+				          	  } else {
+				          	  	$tbf_className = $table;
+				          	  }   
+				          	  	                      	
+		                      $class = Doctrine_Inflector::classify(Doctrine_Inflector::tableize($tbf_className));
                       if (in_array($class, $relClasses)) {
                           $alias = $class . '_' . (count($relClasses) + 1);
                       } else {
@@ -433,6 +465,7 @@ class Doctrine_Import extends Doctrine_Connection_Module
                   );
               }
           }
+             }
 
           // Build records
           foreach ($definitions as $definition) {
@@ -442,4 +475,14 @@ class Doctrine_Import extends Doctrine_Connection_Module
 
         return $classes;
     }
+    }
+    	
+	private function removePrefix($name)
+    {
+		if(strstr($name,'_') && substr_compare($name,'sf_',0,3,true)!=0) {
+			$name = substr(strstr($name, '_'), 1);
+		}
+		return $name;	
+    }
+	
 }
